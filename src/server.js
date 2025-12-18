@@ -10,6 +10,12 @@ import { getDailyDistance, getTotalDistance } from './controllers/statistics.con
 const app = express();
 app.use(express.json());
 app.use('/public', express.static('public'));
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // ou mettre l'origine exacte au lieu de '*'
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+})
 
 // Start HTTP server
 const server = app.listen(PORT, () => {
