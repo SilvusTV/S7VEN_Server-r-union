@@ -1,0 +1,21 @@
+{
+  "name": "gps-owntracks-ws-server",
+  "version": "1.0.0",
+  "description": "HTTP POST receiver for OwnTracks and WebSocket broadcaster for stream overlays",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/init.js"
+  },
+  "keywords": ["owntracks", "websocket", "express", "gps", "overlay"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "node-fetch": "^3.3.2",
+    "sqlite3": "^5.1.7",
+    "tz-lookup": "^6.1.25",
+    "ws": "^8.18.3"
+  }
+}

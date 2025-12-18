@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WS Position Client</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 20px; }
+      code { background: #f3f3f3; padding: 2px 4px; }
+      pre { background: #f7f7f7; padding: 10px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>WebSocket Position Client</h1>
+    <p>Open the console to see messages. Latest message:</p>
+    <pre id="out">(none)</pre>
+    <script>
+      const out = document.getElementById('out');
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => console.log('WS connected');
+      ws.onmessage = (ev) => { out.textContent = ev.data; console.log('msg', ev.data); };
+      ws.onclose = () => console.log('WS closed');
+      ws.onerror = (e) => console.error('WS error', e);
+    </script>
+  </body>
+</html>
