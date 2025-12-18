@@ -5,11 +5,23 @@ import { makeRng, weightedSampleWithoutReplacement } from '../utils/random.js';
 // POST /tombola/new — add tickets or create entrant
 export async function postNewTombola(req, res) {
   try {
-    const { pseudo, tickets, ticket, nb, count } = req.body || {};
-    const rawCount = tickets ?? ticket ?? nb ?? count;
+    const { pseudo, tickets } = req.body || {};
+    const rawCount = tickets;
+    // Nettoyage: accepter des formats comme "€10", "10€", "10 tickets", etc.
+    const parseCount = (val) => {
+      if (val === undefined || val === null) return NaN;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        // Garder uniquement les chiffres (ex: "€1 000" -> "1000")
+        const cleaned = val.replace(/[^0-9]/g, '');
+        if (!cleaned) return NaN;
+        return Number(cleaned);
+      }
+      return NaN;
+    };
     const name = normalizePseudo(pseudo);
 
-    const n = Number(rawCount);
+    const n = Math.trunc(parseCount(rawCount));
     if (!name) return res.status(400).json({ error: 'pseudo requis' });
     if (!Number.isInteger(n) || n <= 0) return res.status(400).json({ error: 'nombre de tickets invalide' });
 
