@@ -37,6 +37,29 @@ export class ORM {
     });
   }
 
+  // Schema helpers
+  async getTableInfo(table) {
+    return this.all(`PRAGMA table_info(${table})`);
+  }
+
+  async columnExists(table, column) {
+    const info = await this.getTableInfo(table);
+    return info.some((c) => c.name === column);
+  }
+
+  /**
+   * Adds a column to a table only if it does not already exist.
+   * Example: await orm.addColumnIfNotExists('challenges', 'reward', "TEXT NOT NULL DEFAULT ''");
+   * Returns true if column was added, false if it already existed.
+   */
+  async addColumnIfNotExists(table, column, definition) {
+    const exists = await this.columnExists(table, column);
+    if (exists) return false;
+    const sql = `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`;
+    await this.run(sql);
+    return true;
+  }
+
   exec(sql) {
     return new Promise((resolve, reject) => {
       this.db.exec(sql, (err) => {
@@ -67,6 +90,17 @@ export class Model {
       .join(', ');
     const sql = `CREATE TABLE ${ifNotExists ? 'IF NOT EXISTS ' : ''}${this.table} (${cols})`;
     await this.orm.run(sql);
+  }
+
+  /**
+   * Ensure a set of columns exist on the table (ALTER TABLE if missing).
+   * Map should be { columnName: definition } where definition is the SQL type/constraints.
+   */
+  async ensureColumns(columnsMap) {
+    for (const [col, def] of Object.entries(columnsMap)) {
+      // Best-effort: ignore errors so that repeated runs are idempotent
+      await this.orm.addColumnIfNotExists(this.table, col, def);
+    }
   }
 
   async insert(data) {

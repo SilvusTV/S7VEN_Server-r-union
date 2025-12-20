@@ -55,6 +55,11 @@ export const Locations = new Model(orm, 'locations', {
 
 // Create table on module import (idempotent)
 await Challenges.createTable(true);
+// Ensure new non-nullable text columns exist for challenges
+await Challenges.ensureColumns({
+  challenge: "TEXT NOT NULL DEFAULT ''",
+  reward: "TEXT NOT NULL DEFAULT ''",
+});
 await Tombolas.createTable(true);
 await Statistics.createTable(true);
 await Locations.createTable(true);
