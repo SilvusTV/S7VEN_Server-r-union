@@ -1,4 +1,5 @@
 import { Locations } from '../../database/index.js';
+import { broadcast, setLastPosition } from '../ws/index.js';
 
 async function loadLastLocation() {
   const sql = 'SELECT id, lat, lon, timestamp, acc, alt, vel, city, address, timezone FROM locations ORDER BY timestamp DESC LIMIT 1';
@@ -21,4 +22,25 @@ export async function getLastLocation(req, res) {
   }
 }
 
-export default { getLastLocation, getLastLocationRaw };
+export async function postBroadcastLastLocation(req, res) {
+  try {
+    const last = await loadLastLocation();
+    if (!last) return res.status(404).json({ error: 'no location' });
+
+    // Build the same payload shape used for WS 'position' messages
+    const { id, ...rest } = last;
+    const payload = { type: 'position', ...rest };
+
+    // Update WS lastPosition so new WS clients also receive it on connect
+    setLastPosition(rest);
+    // Broadcast to all connected WS clients
+    broadcast(payload);
+
+    return res.json({ status: 'ok', action: 'broadcasted', data: rest });
+  } catch (e) {
+    console.error('POST /locations/broadcast-last failed:', e);
+    return res.status(500).json({ error: 'erreur serveur' });
+  }
+}
+
+export default { getLastLocation, getLastLocationRaw, postBroadcastLastLocation };

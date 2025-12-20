@@ -6,7 +6,7 @@ import { postOwnTracks } from './controllers/owntracks.controller.js';
 import { postNewTombola, postDrawTombola } from './controllers/tombola.controller.js';
 import { getChallenges, postStartChallenge, putChallengeDone } from './controllers/challenges.controller.js';
 import { getDailyDistance, getTotalDistance } from './controllers/statistics.controller.js';
-import { getLastLocation } from './controllers/locations.controller.js';
+import { getLastLocation, postBroadcastLastLocation } from './controllers/locations.controller.js';
 import { getCurrentWeather } from './controllers/weather.controller.js';
 import {startTmiClient} from "./tmi/index.js";
 import { registerTmiCommands } from "./tmi/commands.js";
@@ -56,6 +56,7 @@ app.get('/stats/distance/total', getTotalDistance);
 
 // Locations routes
 app.get('/locations/last', getLastLocation);
+app.get('/locations/broadcast-last', postBroadcastLastLocation);
 
 // Weather routes
 app.get('/weather/now', getCurrentWeather);
