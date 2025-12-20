@@ -57,6 +57,9 @@ export function registerTmiCommands() {
           client.say(channel, "Erreur lors de la récupération de la localisation.");
         });
     }
+    if (msg === '!help'){
+      client.say(channel, "Liste des commandes disponibles : !distance, !meteo, !asso, !don");
+    }
   });
 }
 
