@@ -43,6 +43,9 @@ export async function postStartChallenge(req, res) {
       challenge: {
         id: challenge.id,
         name: challenge.name,
+        // Newly added DB fields
+        challenge: challenge.challenge ?? null,
+        reward: challenge.reward ?? null,
         presentation_video: challenge.presentation_video ?? null,
         challenge_video: challenge.challenge_video ?? null,
         done: !!challenge.done,
@@ -83,6 +86,9 @@ export async function putChallengeDone(req, res) {
       challenge: {
         id: fresh.id,
         name: fresh.name,
+        // Newly added DB fields for completeness
+        challenge: fresh.challenge ?? null,
+        reward: fresh.reward ?? null,
         done: !!fresh.done,
       },
       at: new Date().toISOString(),
