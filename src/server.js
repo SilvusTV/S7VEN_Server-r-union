@@ -6,6 +6,10 @@ import { postOwnTracks } from './controllers/owntracks.controller.js';
 import { postNewTombola, postDrawTombola } from './controllers/tombola.controller.js';
 import { getChallenges, postStartChallenge, putChallengeDone } from './controllers/challenges.controller.js';
 import { getDailyDistance, getTotalDistance } from './controllers/statistics.controller.js';
+import { getLastLocation } from './controllers/locations.controller.js';
+import { getCurrentWeather } from './controllers/weather.controller.js';
+import {startTmiClient} from "./tmi/index.js";
+import { registerTmiCommands } from "./tmi/commands.js";
 
 const app = express();
 app.use(express.json());
@@ -24,6 +28,11 @@ const server = app.listen(PORT, () => {
 });
 // Init WebSocket server
 initWS(server, WS_PATH);
+
+// Init TMI.js client and register chat commands
+startTmiClient();
+registerTmiCommands();
+
 
 app.get('/', (req, res) => {
   res.type('text/plain').send('OwnTracks -> WebSocket relay is running. POST to /owntracks and connect to WebSocket at ' + WS_PATH);
@@ -44,6 +53,12 @@ app.put('/challenges/:id/done', putChallengeDone);
 // Statistics routes
 app.get('/stats/distance/daily', getDailyDistance);
 app.get('/stats/distance/total', getTotalDistance);
+
+// Locations routes
+app.get('/locations/last', getLastLocation);
+
+// Weather routes
+app.get('/weather/now', getCurrentWeather);
 
 // Download database file
 app.get('/download/datas.sqlite', (req, res) => {

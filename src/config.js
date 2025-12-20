@@ -19,3 +19,7 @@ const rawDbPath = (process.env.DB_PATH || '').replace(/^['"]|['"]$/g, '');
 export const DB_PATH = rawDbPath
   ? path.resolve(__dirname, '..', rawDbPath)
   : path.resolve(__dirname, '..', 'database', 'datas.sqlite');
+
+export const CHANNEL_NAME = process.env.TWITCH_CHANNEL;
+export const OAUTH_TOKEN = process.env.TWITCH_OAUTH_TOKEN;
+export const BOT_USERNAME = process.env.TWITCH_BOT_USERNAME;

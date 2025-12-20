@@ -31,4 +31,3 @@ export function setLastPosition(pos) {
   lastPosition = pos;
 }
 
-export default { initWS, broadcast, getLastPosition, setLastPosition };

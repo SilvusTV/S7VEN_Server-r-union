@@ -75,4 +75,14 @@ export async function getTotalDistance(req, res) {
   }
 }
 
-export default { getDailyDistance, getTotalDistance };
+export async function getTotalDistanceRaw(){
+  const pts = await loadLocationsOrdered();
+  const { totalMeters, totalKm } = computeDistances(pts);
+  return { meters: totalMeters, km: totalKm };
+}
+
+export async function getDailyDistanceRaw(){
+  const pts = await loadLocationsOrdered();
+  const { perDay } = computeDistances(pts);
+  return { perDay };
+}
