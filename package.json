@@ -20,6 +20,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",
+    "sharp": "^0.33.4",
     "sqlite3": "^5.1.7",
     "tmi.js": "^1.8.5",
     "tz-lookup": "^6.1.25",

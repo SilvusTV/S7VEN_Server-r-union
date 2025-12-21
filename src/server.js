@@ -10,6 +10,7 @@ import { getLastLocation, postBroadcastLastLocation } from './controllers/locati
 import { getCurrentWeather } from './controllers/weather.controller.js';
 import {startTmiClient} from "./tmi/index.js";
 import { registerTmiCommands } from "./tmi/commands.js";
+import { getParcoursPage, getParcoursImage } from './controllers/parcours.controller.js';
 
 const app = express();
 app.use(express.json());
@@ -33,11 +34,7 @@ initWS(server, WS_PATH);
 startTmiClient();
 registerTmiCommands();
 
-
-app.get('/', (req, res) => {
-  res.type('text/plain').send('OwnTracks -> WebSocket relay is running. POST to /owntracks and connect to WebSocket at ' + WS_PATH);
-});
-
+// owntracks routes
 app.post('/owntracks', postOwnTracks);
 
 // Tombola routes
@@ -60,6 +57,10 @@ app.get('/locations/broadcast-last', postBroadcastLastLocation);
 
 // Weather routes
 app.get('/weather/now', getCurrentWeather);
+
+// Parcours (static map of La Réunion with path from stored locations)
+app.get('/parcours', getParcoursPage);
+app.get('/parcours.png', getParcoursImage);
 
 // Download database file
 app.get('/download/datas.sqlite', (req, res) => {

@@ -13,6 +13,7 @@ A minimal Node.js (ESM) server to receive GPS positions from OwnTracks via HTTP 
 - Extra helper APIs for livestream interactions:
   - Tombola: add tickets and draw weighted winners
   - Challenges: broadcast selected challenge and mark as done (WS messages)
+  - Parcours: lightweight web page and static image with the full path over La Réunion (Geoapify Static Map)
 
 Updated stack and packages:
 - Node.js 18+ (ESM only)
@@ -53,6 +54,7 @@ Default paths and files:
 - `NOMINATIM_EMAIL` — used to build a polite User-Agent if `NOMINATIM_USER_AGENT` is not provided
 - `NOMINATIM_USER_AGENT` — full UA string; overrides email-based UA if provided
 - `DB_PATH` — custom path to SQLite file; relative to project root if set (quotes are auto-trimmed). Defaults to `database/datas.sqlite`.
+- `GEOAPIFY_API_KEY` — API key for Geoapify Static Maps (used by `/parcours` and `/parcours.png`). Get a free key at https://www.geoapify.com/
 
 Example `.env`:
 ```
@@ -64,9 +66,28 @@ NOMINATIM_LANGUAGE=fr
 NOMINATIM_EMAIL=you@example.com
 # NOMINATIM_USER_AGENT=gps-owntracks-ws-server/1.0 (you@example.com)
 # DB_PATH=database/datas.sqlite
+GEOAPIFY_API_KEY=your_geoapify_key_here
 ```
 
 ## API
+### GET /parcours (HTML)
+Returns a very light HTML page that displays a single responsive image of La Réunion with the path drawn from stored `locations`.
+
+Query params:
+- `w` (optional): image width hint (default 800; final image requested from `/parcours.png`)
+- `h` (optional): image height hint (default 600)
+
+### GET /parcours.png (PNG)
+Generates a PNG via Geoapify Static Maps, centered on La Réunion, with a red path built from all stored locations (downsampled by 10: one point out of 10, plus the final point).
+
+Query params:
+- `w` (optional): width from 360 to 1600 (default 800)
+- `h` (optional): height from 240 to 1200 (default 600)
+
+Notes:
+- Requires `GEOAPIFY_API_KEY` in environment variables.
+- Caches the image in memory for 60 seconds (cache key includes the timestamp of the latest location).
+- If there are no points yet, returns a plain map of La Réunion without a path.
 ### POST /owntracks
 Headers:
 - Content-Type: application/json
