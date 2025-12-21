@@ -57,8 +57,11 @@ export function registerTmiCommands() {
           client.say(channel, "Erreur lors de la récupération de la localisation.");
         });
     }
+    if (msg === '!parcours'){
+      client.say(channel, "Retrouvez le parcours sur l'ile ici : https://s7ven.silvus.me/parcours");
+    }
     if (msg === '!help'){
-      client.say(channel, "Liste des commandes disponibles : !distance, !meteo, !asso, !don");
+      client.say(channel, "Liste des commandes disponibles : !distance, !meteo, !asso, !don, !parcours");
     }
   });
 }
