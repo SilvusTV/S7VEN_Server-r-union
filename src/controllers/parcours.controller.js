@@ -64,8 +64,8 @@ async function loadAllLocationsOrdered() {
 
 export async function getParcoursPage(req, res) {
   // Minimal HTML containing a responsive image pointing to /parcours.png
-  const w = Number.parseInt(req.query.w, 10) || 800; // default size divided by two
-  const h = Number.parseInt(req.query.h, 10) || 600;
+  const w = Number.parseInt(req.query.w, 10) || 800; // hint width
+  const h = Number.parseInt(req.query.h, 10) || 600; // hint height
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -78,10 +78,26 @@ export async function getParcoursPage(req, res) {
     img { max-width: 100%; height: auto; display: block; }
     .hint { opacity: 0.8; font-size: 0.9rem; }
   </style>
+  <script>
+    // Auto-refresh only the image every 10 minutes with a cache-busting param
+    window.addEventListener('DOMContentLoaded', () => {
+      const img = document.getElementById('parcours-img');
+      if (!img) return;
+      const refresh = () => {
+        try {
+          const url = new URL(img.src, window.location.href);
+          url.searchParams.set('cb', String(Date.now()));
+          img.src = url.toString();
+        } catch (_) {}
+      };
+      // 10 minutes interval
+      setInterval(refresh, 10 * 60 * 1000);
+    });
+  </script>
   </head>
   <body>
     <div class="wrap">
-      <img src="/parcours.png?w=${encodeURIComponent(w)}&h=${encodeURIComponent(h)}" alt="Parcours La Réunion" />
+      <img id="parcours-img" src="/parcours.png?w=${encodeURIComponent(w)}&h=${encodeURIComponent(h)}" alt="Parcours La Réunion" />
     </div>
   </body>
 </html>`;
