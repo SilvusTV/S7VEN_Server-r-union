@@ -6,7 +6,9 @@ import { Locations } from '../../database/index.js';
 // Fixed center/zoom to show entire Réunion
 const REUNION_CENTER = { lon: 55.53, lat: -21.115 };
 // Slightly more zoomed-out to ensure the whole island is always visible
-const REUNION_ZOOM = 9; // was 10
+const REUNION_ZOOM = 10; // was 10
+const WIDTH = 1600;
+const HEIGHT = 1200;
 
 // Simple in-memory cache for the generated PNG (buffers) for a short TTL
 const cache = new Map(); // key -> { buffer, contentType, expiresAt }
@@ -64,8 +66,8 @@ async function loadAllLocationsOrdered() {
 
 export async function getParcoursPage(req, res) {
   // Minimal HTML containing a responsive image pointing to /parcours.png
-  const w = Number.parseInt(req.query.w, 10) || 800; // hint width
-  const h = Number.parseInt(req.query.h, 10) || 600; // hint height
+  const w = Number.parseInt(req.query.w, 10) || WIDTH; // hint width
+  const h = Number.parseInt(req.query.h, 10) || HEIGHT; // hint height
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -113,8 +115,8 @@ export async function getParcoursImage(req, res) {
     // Parse width/height with sane bounds
     let width = Number.parseInt(req.query.w, 10);
     let height = Number.parseInt(req.query.h, 10);
-    if (!Number.isFinite(width)) width = 800; // default size divided by two
-    if (!Number.isFinite(height)) height = 600;
+    if (!Number.isFinite(width)) width = WIDTH; // default size divided by two
+    if (!Number.isFinite(height)) height = HEIGHT;
     width = Math.max(180, Math.min(1600, width));
     height = Math.max(120, Math.min(1200, height));
 
@@ -139,6 +141,11 @@ export async function getParcoursImage(req, res) {
     const tileSizeParam = Number.parseInt(req.query.ts, 10);
     const TILE_SIZE = Number.isFinite(tileSizeParam) ? Math.max(128, Math.min(1024, tileSizeParam)) : 512;
     const renderMode = (req.query.render || 'server').toLowerCase(); // 'server' (compose PNG) or 'geoapify'
+    // Toggle markers (day change + first day) and background map
+    const markersParam = (req.query.markers || '1').toString().toLowerCase();
+    const bgParam = (req.query.bg || '1').toString().toLowerCase();
+    const showMarkers = !(markersParam === '0' || markersParam === 'false' || markersParam === 'no');
+    const showBackground = !(bgParam === '0' || bgParam === 'false' || bgParam === 'no');
 
     const rows = await loadAllLocationsOrdered();
     if (!rows.length) {
@@ -215,7 +222,7 @@ export async function getParcoursImage(req, res) {
     }
 
     // renderMode=server: compose background + our own polyline overlay
-    // 1) Fetch background map without path
+    // 1) Prepare background map URL (may be skipped if bg=0)
     const bgUrl = new URL('https://maps.geoapify.com/v1/staticmap');
     bgUrl.searchParams.set('style', 'osm-carto');
     bgUrl.searchParams.set('width', String(width));
@@ -251,38 +258,42 @@ export async function getParcoursImage(req, res) {
 
     // Build day-change markers based on all rows (not only filtered)
     const markers = [];
-    const DAY_SEC = 86400;
-    const REUNION_TZ_OFFSET_SEC = 4 * 3600; // UTC+4
-    const dayKey = (ts) => Math.floor((Number(ts) + REUNION_TZ_OFFSET_SEC) / DAY_SEC);
-    const formatDayLabel = (ts) => {
-      // Shift epoch by +4h then read using UTC getters to avoid local TZ
-      const d = new Date((Number(ts) + REUNION_TZ_OFFSET_SEC) * 1000);
-      const dd = String(d.getUTCDate()).padStart(2, '0');
-      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-      return `${dd}/${mm}`; // ex: 21/12
-    };
-    // Also add a marker at the start of the very first day with its date
-    let prevKey = null;
-    if (rows.length > 0) {
-      const first = rows[0];
-      const firstLabel = formatDayLabel(first.timestamp);
-      const { x: fx, y: fy } = toImagePx(first.lat, first.lon);
-      const ftextX = Math.max(4, Math.min(width - 4, fx));
-      const ftextY = Math.max(12, Math.min(height - 4, fy + 14));
-      markers.push({ x: fx, y: fy, label: firstLabel, textX: ftextX, textY: ftextY });
-    }
-    for (const r of rows) {
-      const k = dayKey(r.timestamp);
-      if (prevKey !== null && k !== prevKey) {
-        // day changed at this row
-        const { x, y } = toImagePx(r.lat, r.lon);
-        const label = formatDayLabel(r.timestamp);
-        // Place label slightly below the point; keep inside image bounds
-        const textX = Math.max(4, Math.min(width - 4, x));
-        const textY = Math.max(12, Math.min(height - 4, y + 14));
-        markers.push({ x, y, label, textX, textY });
+    let markersCount = 0;
+    if (showMarkers) {
+      const DAY_SEC = 86400;
+      const REUNION_TZ_OFFSET_SEC = 4 * 3600; // UTC+4
+      const dayKey = (ts) => Math.floor((Number(ts) + REUNION_TZ_OFFSET_SEC) / DAY_SEC);
+      const formatDayLabel = (ts) => {
+        // Shift epoch by +4h then read using UTC getters to avoid local TZ
+        const d = new Date((Number(ts) + REUNION_TZ_OFFSET_SEC) * 1000);
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}`; // ex: 21/12
+      };
+      // Also add a marker at the start of the very first day with its date
+      let prevKey = null;
+      if (rows.length > 0) {
+        const first = rows[0];
+        const firstLabel = formatDayLabel(first.timestamp);
+        const { x: fx, y: fy } = toImagePx(first.lat, first.lon);
+        const ftextX = Math.max(4, Math.min(width - 4, fx));
+        const ftextY = Math.max(12, Math.min(height - 4, fy + 14));
+        markers.push({ x: fx, y: fy, label: firstLabel, textX: ftextX, textY: ftextY });
       }
-      prevKey = k;
+      for (const r of rows) {
+        const k = dayKey(r.timestamp);
+        if (prevKey !== null && k !== prevKey) {
+          // day changed at this row
+          const { x, y } = toImagePx(r.lat, r.lon);
+          const label = formatDayLabel(r.timestamp);
+          // Place label slightly below the point; keep inside image bounds
+          const textX = Math.max(4, Math.min(width - 4, x));
+          const textY = Math.max(12, Math.min(height - 4, y + 14));
+          markers.push({ x, y, label, textX, textY });
+        }
+        prevKey = k;
+      }
+      markersCount = markers.length;
     }
 
     // Parse color to #rrggbb + opacity
@@ -317,7 +328,7 @@ export async function getParcoursImage(req, res) {
 </svg>`;
 
     const lastTs = rows[rows.length - 1].timestamp;
-    const cacheKey = `${width}x${height}:${lastTs}:srv:m${modulo}:w${weight}:z${z}`;
+    const cacheKey = `${width}x${height}:${lastTs}:srv:m${modulo}:w${weight}:z${z}:mk${showMarkers?1:0}:bg${showBackground?1:0}:ts${TILE_SIZE}:col${color}`;
     if (debug) {
       return res.json({
         mode: 'server',
@@ -327,7 +338,9 @@ export async function getParcoursImage(req, res) {
         bgUrl: bgUrl.toString().replace(GEOAPIFY_API_KEY, '***'),
         tileSize: TILE_SIZE,
         zoomUsed: z,
-        dayMarkers: markers.length
+        dayMarkers: markersCount,
+        showMarkers,
+        showBackground
       });
     }
     const cached = getCache(cacheKey);
@@ -336,23 +349,36 @@ export async function getParcoursImage(req, res) {
       return res.send(cached.buffer);
     }
 
-    const bgResp = await fetch(bgUrl.toString());
-    if (!bgResp.ok) {
-      const text = await bgResp.text();
-      return res.status(502).json({ error: 'Geoapify background error', details: text });
-    }
-    const bgBuf = Buffer.from(await bgResp.arrayBuffer());
-    // Composite with sharp
     let outBuf;
-    try {
-      outBuf = await sharp(bgBuf).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).png().toBuffer();
-    } catch (e) {
-      console.error('Sharp composite failed, returning background only:', e);
-      outBuf = bgBuf; // fallback
+    if (!showBackground) {
+      // Render only the path (and markers if enabled) to a transparent PNG
+      try {
+        outBuf = await sharp(Buffer.from(svg)).png().toBuffer();
+      } catch (e) {
+        console.error('Sharp SVG->PNG failed:', e);
+        return res.status(500).json({ error: 'render error' });
+      }
+      setCache(cacheKey, outBuf, 'image/png');
+      res.setHeader('Content-Type', 'image/png');
+      return res.send(outBuf);
+    } else {
+      // Fetch background and composite
+      const bgResp = await fetch(bgUrl.toString());
+      if (!bgResp.ok) {
+        const text = await bgResp.text();
+        return res.status(502).json({ error: 'Geoapify background error', details: text });
+      }
+      const bgBuf = Buffer.from(await bgResp.arrayBuffer());
+      try {
+        outBuf = await sharp(bgBuf).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).png().toBuffer();
+      } catch (e) {
+        console.error('Sharp composite failed, returning background only:', e);
+        outBuf = bgBuf; // fallback
+      }
+      setCache(cacheKey, outBuf, 'image/png');
+      res.setHeader('Content-Type', 'image/png');
+      return res.send(outBuf);
     }
-    setCache(cacheKey, outBuf, 'image/png');
-    res.setHeader('Content-Type', 'image/png');
-    return res.send(outBuf);
   } catch (e) {
     console.error('GET /parcours.png failed:', e);
     return res.status(500).json({ error: 'erreur serveur' });
